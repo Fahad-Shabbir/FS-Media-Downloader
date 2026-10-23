@@ -1,6 +1,11 @@
 import os
-import re
 import sys
+
+# Initialize yt-dlp update override BEFORE importing downloader or yt_dlp
+import updater
+updater.setup_ytdlp_override()
+
+import re
 import threading
 from io import BytesIO
 from pathlib import Path
@@ -100,11 +105,11 @@ def add_duration_badge(image, duration_str):
     
     return img.convert("RGB")
 
-class YouTubeDownloaderApp(ctk.CTk):
+class FSMediaDownloaderApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("Universal Media Downloader - by Fahad Shabbir")
+        self.title("FS Media Downloader - by Fahad Shabbir")
         self.geometry("930x870")
         self.minsize(840, 750)
         self.configure(fg_color=COLOR_CANVAS_BG)
@@ -205,7 +210,7 @@ class YouTubeDownloaderApp(ctk.CTk):
 
         title_lbl = ctk.CTkLabel(
             title_row,
-            text="Universal Media Downloader",
+            text="FS Media Downloader",
             font=ctk.CTkFont(size=22, weight="bold"),
             text_color=COLOR_TEXT_PRIMARY
         )
@@ -1154,7 +1159,7 @@ class YouTubeDownloaderApp(ctk.CTk):
 
         footer_lbl = ctk.CTkLabel(
             footer_frame,
-            text="Universal Media Downloader  •  Designed & Developed by Fahad Shabbir",
+            text="FS Media Downloader  •  Designed & Developed by Fahad Shabbir",
             font=ctk.CTkFont(size=11),
             text_color=COLOR_SUBTEXT
         )
@@ -1724,7 +1729,7 @@ def main():
             return
         except Exception as e:
             print(f"Liquid Glass engine encountered an issue ({e}). Launching classic interface...")
-    app = YouTubeDownloaderApp()
+    app = FSMediaDownloaderApp()
     app.mainloop()
 
 if __name__ == "__main__":

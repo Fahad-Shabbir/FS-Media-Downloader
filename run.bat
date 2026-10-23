@@ -1,14 +1,10 @@
 @echo off
-title Universal Media Downloader - by Fahad Shabbir
+title FS Media Downloader - by Fahad Shabbir
 cd /d "%~dp0"
 
 :: Check if standalone EXE exists in dist folder
-if exist "dist\Universal Media Downloader.exe" (
-    start "" "dist\Universal Media Downloader.exe"
-    exit /b
-)
-if exist "dist\YouTube Media Downloader.exe" (
-    start "" "dist\YouTube Media Downloader.exe"
+if exist "dist\FS Media Downloader.exe" (
+    start "" "dist\FS Media Downloader.exe"
     exit /b
 )
 
@@ -19,7 +15,7 @@ if %errorlevel% neq 0 (
     echo Python is not installed on this system.
     echo.
     echo Please use the pre-built standalone executable:
-    echo "dist\Universal Media Downloader.exe"
+    echo "dist\FS Media Downloader.exe"
     echo ========================================================
     echo.
     pause

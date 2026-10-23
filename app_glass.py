@@ -1,5 +1,10 @@
 import os
 import sys
+
+# Ensure yt-dlp update override is registered before downloader / yt_dlp
+import updater
+updater.setup_ytdlp_override()
+
 import shutil
 import threading
 import json
@@ -248,6 +253,59 @@ class DownloaderApi:
                 return {"cancelled": True}
             return {"error": str(e)}
 
+    # ================= UPDATE & SYSTEM METHODS =================
+    def get_versions(self):
+        """Returns installed app version, yt-dlp version, and override state."""
+        return updater.get_installed_versions()
+
+    def check_updates(self):
+        """Checks for both yt-dlp (PyPI) and app (GitHub) updates asynchronously."""
+        ytdlp_res = updater.check_ytdlp_update()
+        app_res = updater.check_app_update()
+        return {
+            "ytdlp": ytdlp_res,
+            "app": app_res
+        }
+
+    def update_ytdlp(self):
+        """Downloads the latest yt-dlp wheel from PyPI and extracts it to %LOCALAPPDATA%."""
+        def progress_cb(pct, status):
+            if not self.window:
+                return
+            js = f"if (window.update_ytdlp_progress) {{ window.update_ytdlp_progress({pct}, {json.dumps(status)}); }}"
+            try:
+                self.window.evaluate_js(js)
+            except Exception:
+                pass
+
+        return updater.perform_ytdlp_update(progress_cb=progress_cb)
+
+    def download_app_update(self, asset_url, asset_name=""):
+        """Downloads the new app .exe from GitHub into the user's Downloads folder."""
+        def progress_cb(pct, status):
+            if not self.window:
+                return
+            js = f"if (window.update_app_progress) {{ window.update_app_progress({pct}, {json.dumps(status)}); }}"
+            try:
+                self.window.evaluate_js(js)
+            except Exception:
+                pass
+
+        res = updater.download_app_asset(asset_url, asset_name, progress_cb=progress_cb)
+        if res.get("success") and res.get("file_path"):
+            updater.open_file_location(res["file_path"])
+        return res
+
+    def restart_app(self):
+        """Restarts the application to load new updates."""
+        def _do_restart():
+            import time
+            time.sleep(0.3)
+            updater.restart_app()
+
+        threading.Thread(target=_do_restart, daemon=True).start()
+        return {"restarting": True}
+
 
 def get_html_path():
     """Find index.html in dev environment or PyInstaller bundled environment."""
@@ -267,7 +325,7 @@ def main():
         sys.exit(1)
 
     window = webview.create_window(
-        title="Universal Media Downloader - Liquid Glass Edition by Fahad Shabbir",
+        title="FS Media Downloader - Liquid Glass Edition by Fahad Shabbir",
         url=html_file,
         js_api=api,
         width=1040,

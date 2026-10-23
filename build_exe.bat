@@ -1,10 +1,10 @@
 @echo off
-title Build Standalone Executable - Universal Media Downloader (Liquid Glass)
+title Build Standalone Executable - FS Media Downloader (Liquid Glass)
 cd /d "%~dp0"
 echo ========================================================
-echo Building Liquid Glass Universal Media Downloader EXE...
+echo Building Liquid Glass FS Media Downloader EXE...
 echo ========================================================
-python -m PyInstaller "Universal Media Downloader.spec" --noconfirm
+python -m PyInstaller "FS Media Downloader.spec" --noconfirm
 if errorlevel 1 (
     echo.
     echo Build failed. Press any key to exit...
@@ -14,6 +14,6 @@ if errorlevel 1 (
 echo.
 echo ========================================================
 echo Build complete! The executable is ready in the 'dist' folder:
-echo dist\Universal Media Downloader.exe
+echo dist\FS Media Downloader.exe
 echo ========================================================
 pause

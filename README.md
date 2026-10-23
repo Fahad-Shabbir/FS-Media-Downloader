@@ -1,4 +1,4 @@
-# Universal Media Downloader - Liquid Glass Edition
+# FS Media Downloader - Liquid Glass Edition
 
 **Author & Creator:** Fahad Shabbir  
 A modern Windows desktop application to download videos and audio from **YouTube, X (Twitter), Facebook, Instagram, TikTok, Reddit, Twitch, Vimeo, SoundCloud, and 1,000+ popular websites** wrapped in a pure **Liquid Glass (Glassmorphic)** user interface.
@@ -22,6 +22,7 @@ A modern Windows desktop application to download videos and audio from **YouTube
 - **⚡ Turbo 8x Accelerator**: Parallel multi-threaded fragment download acceleration.
 - **⏸️ Pause / Resume & 🛑 Cancel**: Live in-progress streaming controls with paused amber state and immediate safe abort.
 - **🍪 Anti-Bot Bypass**: Quick importer for `cookies.txt` to bypass YouTube's *"Sign in to confirm you're not a bot"*.
+- **🔄 In-App Updates**: One-click updates for the yt-dlp core engine from PyPI wheels and the application from GitHub releases.
 
 ---
 
@@ -29,8 +30,8 @@ A modern Windows desktop application to download videos and audio from **YouTube
 
 ```powershell
 # 1. Clone repository
-git clone https://github.com/<your-username>/<your-repo-name>.git
-cd "Multi Downlaoder"
+git clone https://github.com/Fahad-Shabbir/Universal-Media-Downloader.git
+cd "Universal-Media-Downloader"
 
 # 2. Install dependencies
 pip install -r requirements.txt
@@ -41,14 +42,21 @@ python app.py
 
 ---
 
-## 📦 Building Standalone Executable (.exe)
+## 📦 Building Standalone Executable & Installer
 
+### 1. Build Standalone Executable (.exe)
 To bundle the entire app into a single standalone `.exe` (includes Python, FFmpeg, and all Liquid Glass UI assets):
-
 ```powershell
 build_exe.bat
 ```
-The output file will be generated in `dist\Universal Media Downloader.exe`.
+The output file will be generated in `dist\FS Media Downloader.exe`.
+
+### 2. Build Windows Installer (Inno Setup)
+To generate the Windows Setup installer:
+```powershell
+build_installer.bat
+```
+The output file will be generated in `installer_output\FS_Media_Downloader_Setup_v1.0.0.exe`.
 
 ---
 
