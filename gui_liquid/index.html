@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Universal Media Downloader - Liquid Glass Edition</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Liquid Metasurface SVG Filters -->
+  <svg style="position: absolute; width: 0; height: 0; pointer-events: none;" aria-hidden="true">
+    <defs>
+      <!-- Fluid Metaball Blending Filter for Aurora Orbs -->
+      <filter id="liquid-blend">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="40" result="blur" />
+        <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 24 -10" result="goo" />
+        <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+      </filter>
+    </defs>
+  </svg>
+
+  <!-- Ambient Liquid Aurora Mesh -->
+  <div class="liquid-canvas">
+    <div class="liquid-orb orb-1"></div>
+    <div class="liquid-orb orb-2"></div>
+    <div class="liquid-orb orb-3"></div>
+    <div class="liquid-orb orb-4"></div>
+  </div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="glass-panel app-header" data-tilt="true">
+      <div class="header-brand">
+        <div class="brand-icon">⚡</div>
+        <div>
+          <div class="brand-title">
+            Universal Media Downloader
+            <span class="author-pill">by Fahad Shabbir</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Turbo Switch -->
+        <label class="turbo-toggle active" id="turboToggleContainer" title="8x Multi-Threaded Parallel Fragment Downloads">
+          <span style="font-size: 13px; font-weight: 600;">⚡ Turbo 8x</span>
+          <div class="switch">
+            <input type="checkbox" id="turboCheck" checked>
+            <span class="slider"></span>
+          </div>
+        </label>
+
+        <!-- Cookies Anti-Bot Bypass Button -->
+        <button class="glass-btn-icon" id="cookiesBtn" title="Import cookies.txt to bypass 'Sign in to confirm you are not a robot'">
+          <span>🍪</span>
+          <span id="cookiesLabel">Bypass Bot Check</span>
+        </button>
+
+        <!-- Theme Toggle -->
+        <button class="glass-btn-icon" id="themeToggleBtn" title="Switch Theme">
+          <span id="themeIcon">☀️</span>
+          <span id="themeLabel">Light Mode</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs with Jelly Glider -->
+    <div class="tabs-nav-wrapper">
+      <div class="tabs-nav" id="mainTabsNav">
+        <div class="tab-pill-glider" id="tabGlider"></div>
+        <button class="tab-btn active" id="tabSingleBtn">
+          <span>🎬</span> Single Link
+        </button>
+        <button class="tab-btn" id="tabBulkBtn">
+          <span>📑</span> Playlist & Bulk Queue
+        </button>
+      </div>
+    </div>
+
+    <!-- SINGLE LINK SECTION -->
+    <section id="singleSection" class="glass-panel" data-tilt="true" style="display: flex; flex-direction: column; gap: 18px;">
+      <div class="input-row">
+        <input 
+          type="text" 
+          id="singleUrlInput" 
+          class="glass-input" 
+          placeholder="Paste any video or audio link here (YouTube, X, FB, IG, TikTok, Reddit...)" 
+          autocomplete="off"
+        />
+        <button class="glass-btn-icon" id="pasteBtn" title="Paste from clipboard">📋 Paste</button>
+        <button class="glass-btn-primary" id="analyzeBtn">
+          <span>🔍</span> Analyze Link
+        </button>
+      </div>
+
+      <!-- Supported Platforms Banner -->
+      <div class="supported-bar">
+        <span>Supported Platforms:</span>
+        <span class="plat-chip">YouTube</span>
+        <span class="plat-chip">X (Twitter)</span>
+        <span class="plat-chip">Facebook</span>
+        <span class="plat-chip">Instagram</span>
+        <span class="plat-chip">TikTok</span>
+        <span class="plat-chip">Reddit</span>
+        <span class="plat-chip">Vimeo</span>
+        <span class="plat-chip">Twitch</span>
+        <span class="plat-chip">SoundCloud</span>
+        <span class="plat-chip">+ 1000 more</span>
+      </div>
+
+      <!-- Preview Box (Appears after analysis) -->
+      <div id="previewCard" class="preview-card">
+        <div class="preview-header">
+          <div class="preview-thumb-box">
+            <img id="previewThumb" class="preview-thumb" src="" alt="Thumbnail" />
+            <div id="previewPlatform" class="preview-platform-badge">YouTube</div>
+            <div id="previewDuration" class="preview-duration-badge">0:00</div>
+          </div>
+          <div class="preview-meta">
+            <div id="previewTitle" class="preview-title">Video Title Placeholder</div>
+            <div id="previewChannel" class="preview-uploader">Channel Name</div>
+          </div>
+        </div>
+
+        <!-- Format & Quality Selector -->
+        <div>
+          <div class="section-subtitle">Select Format & Quality</div>
+          <div class="format-nav-wrapper">
+            <div class="format-nav" id="formatNav">
+              <div class="format-pill-glider" id="formatGlider"></div>
+              <button class="format-tab-btn active" id="typeVideoBtn">
+                🎬 Video (MP4)
+              </button>
+              <button class="format-tab-btn" id="typeAudioBtn">
+                🎵 Audio Only
+              </button>
+            </div>
+          </div>
+
+          <!-- Video Resolutions Grid -->
+          <div id="videoResolutionsSection">
+            <div id="resolutionsGrid" class="resolutions-grid">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Audio Quality Options (MP3 / WAV) -->
+          <div id="audioQualitySection" style="display: none;">
+            <div class="audio-options-row">
+              <div class="audio-btn selected" data-audio-quality="MP3" id="audioMp3Btn">
+                <div class="quality-label">🎵 MP3 Audio</div>
+                <div class="quality-sub">320 kbps Ultra High Quality</div>
+              </div>
+              <div class="audio-btn" data-audio-quality="WAV" id="audioWavBtn">
+                <div class="quality-label">🎼 WAV Lossless</div>
+                <div class="quality-sub">Uncompressed Studio PCM Audio</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BULK & PLAYLIST SECTION -->
+    <section id="bulkSection" class="glass-panel" data-tilt="true" style="display: none; flex-direction: column; gap: 18px;">
+      <div>
+        <div class="section-subtitle">Playlist or Multi-URL Links</div>
+        <textarea 
+          id="bulkTextarea" 
+          class="bulk-textarea" 
+          placeholder="Paste YouTube Playlist URL, or paste multiple video links from any platform (one URL per line)..."
+        ></textarea>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <button class="glass-btn-icon" id="bulkPasteBtn">📋 Paste Links</button>
+        <button class="glass-btn-primary" id="analyzeBulkBtn">
+          <span>🔍</span> Analyze Playlist / Links
+        </button>
+      </div>
+
+      <!-- Bulk Options -->
+      <div id="bulkOptionsCard" style="display: none; flex-direction: column; gap: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div id="bulkSummaryText" style="font-weight: 600; font-size: 15px;">Queue: 0 videos</div>
+          <div style="display: flex; gap: 8px;">
+            <button class="glass-btn-icon" id="bulkTypeVideo" style="font-size: 12px; padding: 6px 12px;">🎬 Best Video (MP4)</button>
+            <button class="glass-btn-icon" id="bulkTypeMp3" style="font-size: 12px; padding: 6px 12px;">🎵 MP3 (320k)</button>
+            <button class="glass-btn-icon" id="bulkTypeWav" style="font-size: 12px; padding: 6px 12px;">🎼 WAV Lossless</button>
+          </div>
+        </div>
+
+        <div id="bulkItemsList" class="bulk-items-list">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Destination Folder Bar -->
+    <div class="glass-panel destination-bar" data-tilt="true">
+      <span style="font-weight: 600;">Save To:</span>
+      <span id="destPathText" class="dest-path">C:\Users\Fahad Shabbir\Downloads</span>
+      <button class="glass-btn-icon" id="browseDestBtn">📁 Browse</button>
+      <button class="glass-btn-icon" id="openDestBtn">📂 Open Folder</button>
+    </div>
+
+    <!-- Download Trigger & Liquid Wave Progress Glass Card -->
+    <div id="progressCard" class="glass-panel progress-card" data-tilt="true">
+      <div class="progress-info">
+        <span id="progressTitle" style="font-weight: 600;">Ready</span>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span id="progressPercent" style="font-weight: 700; color: var(--accent-cyan);">0%</span>
+          <button class="glass-btn-icon-mini" id="miniPauseBtn" title="Pause / Resume" style="display: none; padding: 4px 8px; font-size: 11px;">⏸</button>
+          <button class="glass-btn-icon-mini" id="miniCancelBtn" title="Cancel Download" style="display: none; padding: 4px 8px; font-size: 11px; color: #f87171;">✕</button>
+        </div>
+      </div>
+      <div class="progress-track">
+        <div id="progressFill" class="progress-fill">
+          <!-- Fluid Wave Overlays -->
+          <div class="liquid-wave-layer wave-back"></div>
+          <div class="liquid-wave-layer wave-front"></div>
+          <div class="liquid-shimmer"></div>
+        </div>
+      </div>
+      <div class="progress-sub">
+        <span id="progressSpeed">-- MB/s</span>
+        <span id="progressEta">ETA: --</span>
+        <span id="progressSize">0 MB / 0 MB</span>
+      </div>
+    </div>
+
+    <!-- Live In-Progress Action Controls (Pause / Resume & Cancel) -->
+    <div id="downloadControlsRow" style="display: none; gap: 12px; width: 100%;">
+      <button class="glass-btn-icon" id="pauseDownloadBtn" style="flex: 1; padding: 16px; justify-content: center; font-size: 15px; font-weight: 700;">
+        <span id="pauseBtnIcon">⏸</span>
+        <span id="pauseBtnText">Pause</span>
+      </button>
+      <button class="glass-btn-icon" id="cancelDownloadBtn" style="flex: 1; padding: 16px; justify-content: center; font-size: 15px; font-weight: 700; color: #f87171; border-color: rgba(239, 68, 68, 0.45); background: rgba(239, 68, 68, 0.12);">
+        <span>🛑</span>
+        <span>Cancel Download</span>
+      </button>
+    </div>
+
+    <!-- Start Download Action Button (Default) -->
+    <button class="glass-btn-primary" id="startDownloadBtn" style="padding: 16px; font-size: 16px; justify-content: center; letter-spacing: 0.3px;">
+      <span id="downloadBtnIcon">⚡</span>
+      <span id="downloadBtnText">Start Download</span>
+    </button>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <span>Powered by yt-dlp & FFmpeg Hardware Acceleration</span>
+      <span class="footer-credit">Handcrafted with Liquid Glass UI by Fahad Shabbir</span>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
