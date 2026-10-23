@@ -1,4 +1,4 @@
-// Universal Media Downloader - Liquid Glass Engine & Animation Controller
+// FS Media Downloader - Liquid Glass Engine & Animation Controller
 // Handcrafted with Liquid Glass UI by Fahad Shabbir
 
 let currentMode = 'single'; // 'single' | 'bulk'
@@ -80,6 +80,42 @@ const pauseBtnText = document.getElementById('pauseBtnText');
 const cancelDownloadBtn = document.getElementById('cancelDownloadBtn');
 const miniPauseBtn = document.getElementById('miniPauseBtn');
 const miniCancelBtn = document.getElementById('miniCancelBtn');
+
+// Update & System DOM Elements
+const updateBtn = document.getElementById('updateBtn');
+const updateBtnIcon = document.getElementById('updateBtnIcon');
+const updateBtnLabel = document.getElementById('updateBtnLabel');
+const updateNoticeDot = document.getElementById('updateNoticeDot');
+
+const footerYtdlpVer = document.getElementById('footerYtdlpVer');
+const footerAppVer = document.getElementById('footerAppVer');
+
+const updateModalOverlay = document.getElementById('updateModalOverlay');
+const closeUpdateModalBtn = document.getElementById('closeUpdateModalBtn');
+const dismissModalBtn = document.getElementById('dismissModalBtn');
+const recheckUpdatesBtn = document.getElementById('recheckUpdatesBtn');
+const recheckIcon = document.getElementById('recheckIcon');
+
+const ytdlpStatusBadge = document.getElementById('ytdlpStatusBadge');
+const modalYtdlpInstalled = document.getElementById('modalYtdlpInstalled');
+const modalYtdlpLatest = document.getElementById('modalYtdlpLatest');
+const ytdlpProgressBox = document.getElementById('ytdlpProgressBox');
+const ytdlpProgressFill = document.getElementById('ytdlpProgressFill');
+const ytdlpProgressMsg = document.getElementById('ytdlpProgressMsg');
+const runYtdlpUpdateBtn = document.getElementById('runYtdlpUpdateBtn');
+const restartAppBtn = document.getElementById('restartAppBtn');
+
+const appStatusBadge = document.getElementById('appStatusBadge');
+const modalAppInstalled = document.getElementById('modalAppInstalled');
+const modalAppLatest = document.getElementById('modalAppLatest');
+const appNotesBox = document.getElementById('appNotesBox');
+const appNotesContent = document.getElementById('appNotesContent');
+const appProgressBox = document.getElementById('appProgressBox');
+const appProgressFill = document.getElementById('appProgressFill');
+const appProgressMsg = document.getElementById('appProgressMsg');
+const runAppUpdateBtn = document.getElementById('runAppUpdateBtn');
+
+let lastCheckedUpdates = null;
 
 // ================= LIQUID GLASS PHYSICS & ANIMATIONS =================
 
@@ -168,6 +204,8 @@ window.addEventListener('pywebviewready', () => {
         cookiesBtn.style.color = "#4ade80";
       }
     });
+    // Load installed versions into UI
+    loadInstalledVersions();
   }
 });
 
@@ -681,3 +719,324 @@ window.update_bulk_progress = function(idx, total, title, status) {
     }
   }
 };
+
+// ================= LIQUID GLASS TOAST SYSTEM =================
+function showToast(message, type = 'info', duration = 4000) {
+  const container = document.getElementById('toastContainer');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className = `glass-toast toast-${type}`;
+  
+  const iconMap = {
+    success: '✓',
+    error: '✗',
+    info: '⚡'
+  };
+  const icon = iconMap[type] || 'ℹ️';
+
+  toast.innerHTML = `
+    <span class="toast-icon">${icon}</span>
+    <span class="toast-message">${message}</span>
+    <span class="toast-close">✕</span>
+  `;
+
+  toast.querySelector('.toast-close').addEventListener('click', (e) => {
+    e.stopPropagation();
+    dismissToast(toast);
+  });
+
+  toast.addEventListener('click', () => dismissToast(toast));
+
+  container.appendChild(toast);
+  requestAnimationFrame(() => {
+    toast.classList.add('show');
+  });
+
+  if (duration > 0) {
+    setTimeout(() => {
+      dismissToast(toast);
+    }, duration);
+  }
+}
+
+function dismissToast(toast) {
+  if (!toast || toast.classList.contains('hide')) return;
+  toast.classList.remove('show');
+  toast.classList.add('hide');
+  setTimeout(() => {
+    if (toast.parentElement) toast.remove();
+  }, 320);
+}
+
+// ================= SYSTEM & UPDATE CONTROLLER =================
+
+async function loadInstalledVersions() {
+  if (!window.pywebview || !window.pywebview.api) return;
+  try {
+    const v = await window.pywebview.api.get_versions();
+    if (v) {
+      if (v.ytdlp_version && footerYtdlpVer) {
+        footerYtdlpVer.textContent = `yt-dlp v${v.ytdlp_version}`;
+        if (modalYtdlpInstalled) {
+          modalYtdlpInstalled.textContent = `v${v.ytdlp_version}` + (v.ytdlp_is_custom ? ' (Updated)' : '');
+        }
+      }
+      if (v.app_version && footerAppVer) {
+        footerAppVer.textContent = `App v${v.app_version}`;
+        if (modalAppInstalled) {
+          modalAppInstalled.textContent = `v${v.app_version}`;
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Failed to load versions:", err);
+  }
+}
+
+function openUpdateModal() {
+  if (updateModalOverlay) {
+    updateModalOverlay.classList.add('show');
+  }
+}
+
+function closeUpdateModal() {
+  if (updateModalOverlay) {
+    updateModalOverlay.classList.remove('show');
+  }
+}
+
+// Modal closing handlers
+if (closeUpdateModalBtn) closeUpdateModalBtn.addEventListener('click', closeUpdateModal);
+if (dismissModalBtn) dismissModalBtn.addEventListener('click', closeUpdateModal);
+if (updateModalOverlay) {
+  updateModalOverlay.addEventListener('click', (e) => {
+    if (e.target === updateModalOverlay) {
+      closeUpdateModal();
+    }
+  });
+}
+
+async function checkUpdates(openModal = true) {
+  if (!window.pywebview || !window.pywebview.api) {
+    showToast("Application engine is initializing...", "info");
+    return;
+  }
+
+  // Set loading states
+  if (updateBtn) updateBtn.disabled = true;
+  if (updateBtnIcon) updateBtnIcon.classList.add('spinning');
+  if (updateBtnLabel) updateBtnLabel.textContent = 'Checking...';
+  if (recheckIcon) recheckIcon.classList.add('spinning');
+  if (recheckUpdatesBtn) recheckUpdatesBtn.disabled = true;
+
+  if (ytdlpStatusBadge) {
+    ytdlpStatusBadge.className = 'status-badge checking';
+    ytdlpStatusBadge.textContent = 'Checking PyPI...';
+  }
+  if (appStatusBadge) {
+    appStatusBadge.className = 'status-badge checking';
+    appStatusBadge.textContent = 'Checking GitHub...';
+  }
+
+  if (openModal) {
+    openUpdateModal();
+  }
+
+  try {
+    const res = await window.pywebview.api.check_updates();
+    lastCheckedUpdates = res;
+
+    // 1. Process yt-dlp status
+    const ytdlp = res.ytdlp || {};
+    if (modalYtdlpInstalled && ytdlp.current) {
+      modalYtdlpInstalled.textContent = `v${ytdlp.current}`;
+    }
+    if (modalYtdlpLatest && ytdlp.latest) {
+      modalYtdlpLatest.textContent = `v${ytdlp.latest}`;
+    }
+
+    if (ytdlp.error) {
+      ytdlpStatusBadge.className = 'status-badge error';
+      ytdlpStatusBadge.textContent = 'Check Failed';
+      runYtdlpUpdateBtn.style.display = 'none';
+      showToast("yt-dlp check: " + ytdlp.error, "error");
+    } else if (ytdlp.update_available) {
+      ytdlpStatusBadge.className = 'status-badge available';
+      ytdlpStatusBadge.textContent = `Update Available (v${ytdlp.latest})`;
+      runYtdlpUpdateBtn.style.display = 'inline-flex';
+      restartAppBtn.style.display = 'none';
+      if (updateNoticeDot) updateNoticeDot.style.display = 'block';
+    } else {
+      ytdlpStatusBadge.className = 'status-badge uptodate';
+      ytdlpStatusBadge.textContent = 'Up to date ✓';
+      runYtdlpUpdateBtn.style.display = 'none';
+      restartAppBtn.style.display = 'none';
+    }
+
+    // 2. Process App release status
+    const app = res.app || {};
+    if (modalAppInstalled && app.current) {
+      modalAppInstalled.textContent = `v${app.current}`;
+    }
+    if (modalAppLatest && app.latest) {
+      modalAppLatest.textContent = `v${app.latest}`;
+    }
+
+    if (app.error) {
+      appStatusBadge.className = 'status-badge error';
+      appStatusBadge.textContent = 'Check Failed';
+      runAppUpdateBtn.style.display = 'none';
+      if (appNotesBox) appNotesBox.style.display = 'none';
+      showToast("App check: " + app.error, "error");
+    } else if (app.update_available) {
+      appStatusBadge.className = 'status-badge available';
+      appStatusBadge.textContent = `New Version Available (v${app.latest})`;
+      runAppUpdateBtn.style.display = 'inline-flex';
+      if (app.notes && appNotesBox && appNotesContent) {
+        appNotesContent.textContent = app.notes;
+        appNotesBox.style.display = 'block';
+      }
+      if (updateNoticeDot) updateNoticeDot.style.display = 'block';
+    } else {
+      appStatusBadge.className = 'status-badge uptodate';
+      appStatusBadge.textContent = "You're up to date ✓";
+      runAppUpdateBtn.style.display = 'none';
+      if (appNotesBox) appNotesBox.style.display = 'none';
+    }
+
+    // Toast feedback if up to date
+    if (!ytdlp.update_available && !app.update_available && !ytdlp.error && !app.error) {
+      showToast("You're up to date! yt-dlp core and App are on the latest versions.", "success");
+      if (updateNoticeDot) updateNoticeDot.style.display = 'none';
+    } else if (ytdlp.update_available || app.update_available) {
+      showToast("Updates available! See the dialog to update.", "info");
+    }
+
+  } catch (err) {
+    showToast("Update check failed: " + err, "error");
+    if (ytdlpStatusBadge) {
+      ytdlpStatusBadge.className = 'status-badge error';
+      ytdlpStatusBadge.textContent = 'Error';
+    }
+    if (appStatusBadge) {
+      appStatusBadge.className = 'status-badge error';
+      appStatusBadge.textContent = 'Error';
+    }
+  } finally {
+    if (updateBtn) updateBtn.disabled = false;
+    if (updateBtnIcon) updateBtnIcon.classList.remove('spinning');
+    if (updateBtnLabel) updateBtnLabel.textContent = 'Update';
+    if (recheckIcon) recheckIcon.classList.remove('spinning');
+    if (recheckUpdatesBtn) recheckUpdatesBtn.disabled = false;
+  }
+}
+
+// Bind Update & Recheck Buttons
+if (updateBtn) {
+  updateBtn.addEventListener('click', () => checkUpdates(true));
+}
+if (recheckUpdatesBtn) {
+  recheckUpdatesBtn.addEventListener('click', () => checkUpdates(false));
+}
+
+// Global Progress Hooks invoked from Python
+window.update_ytdlp_progress = function(percent, message) {
+  if (ytdlpProgressFill) ytdlpProgressFill.style.width = `${percent}%`;
+  if (ytdlpProgressMsg && message) ytdlpProgressMsg.textContent = message;
+};
+
+window.update_app_progress = function(percent, message) {
+  if (appProgressFill) appProgressFill.style.width = `${percent}%`;
+  if (appProgressMsg && message) appProgressMsg.textContent = message;
+};
+
+// yt-dlp Update Execution
+if (runYtdlpUpdateBtn) {
+  runYtdlpUpdateBtn.addEventListener('click', async () => {
+    runYtdlpUpdateBtn.disabled = true;
+    runYtdlpUpdateBtn.innerHTML = '<span>⏳</span> Updating...';
+    if (ytdlpProgressBox) ytdlpProgressBox.style.display = 'flex';
+    if (ytdlpProgressFill) ytdlpProgressFill.style.width = '10%';
+    if (ytdlpProgressMsg) ytdlpProgressMsg.textContent = 'Connecting to PyPI...';
+
+    try {
+      const res = await window.pywebview.api.update_ytdlp();
+      if (res && res.success) {
+        if (ytdlpProgressFill) ytdlpProgressFill.style.width = '100%';
+        if (ytdlpProgressMsg) ytdlpProgressMsg.textContent = `✓ Successfully updated to v${res.version}!`;
+        runYtdlpUpdateBtn.style.display = 'none';
+        if (restartAppBtn) restartAppBtn.style.display = 'inline-flex';
+        if (ytdlpStatusBadge) {
+          ytdlpStatusBadge.className = 'status-badge uptodate';
+          ytdlpStatusBadge.textContent = `Updated to v${res.version}`;
+        }
+        showToast(`yt-dlp updated to v${res.version}. Please restart the app.`, "success", 6000);
+      } else {
+        const err = (res && res.error) ? res.error : "Unknown error";
+        if (ytdlpProgressMsg) ytdlpProgressMsg.textContent = "Update failed: " + err;
+        runYtdlpUpdateBtn.disabled = false;
+        runYtdlpUpdateBtn.innerHTML = '<span>⚡</span> Retry Update';
+        showToast("yt-dlp update failed: " + err, "error");
+      }
+    } catch (err) {
+      if (ytdlpProgressMsg) ytdlpProgressMsg.textContent = "Update failed: " + err;
+      runYtdlpUpdateBtn.disabled = false;
+      runYtdlpUpdateBtn.innerHTML = '<span>⚡</span> Retry Update';
+      showToast("Error updating yt-dlp: " + err, "error");
+    }
+  });
+}
+
+// Restart Application Handler
+if (restartAppBtn) {
+  restartAppBtn.addEventListener('click', async () => {
+    restartAppBtn.disabled = true;
+    restartAppBtn.innerHTML = '<span>⏳</span> Restarting App...';
+    showToast("Restarting FS Media Downloader...", "info", 3000);
+    try {
+      await window.pywebview.api.restart_app();
+    } catch (err) {
+      console.error("Restart error:", err);
+    }
+  });
+}
+
+// App Update Execution
+if (runAppUpdateBtn) {
+  runAppUpdateBtn.addEventListener('click', async () => {
+    if (!lastCheckedUpdates || !lastCheckedUpdates.app || !lastCheckedUpdates.app.asset_url) {
+      showToast("Download URL not found.", "error");
+      return;
+    }
+    const assetUrl = lastCheckedUpdates.app.asset_url;
+    const assetName = lastCheckedUpdates.app.asset_name || "FS Media Downloader.exe";
+
+    runAppUpdateBtn.disabled = true;
+    runAppUpdateBtn.innerHTML = '<span>⏳</span> Downloading...';
+    if (appProgressBox) appProgressBox.style.display = 'flex';
+    if (appProgressFill) appProgressFill.style.width = '5%';
+    if (appProgressMsg) appProgressMsg.textContent = 'Connecting to GitHub...';
+
+    try {
+      const res = await window.pywebview.api.download_app_update(assetUrl, assetName);
+      if (res && res.success) {
+        if (appProgressFill) appProgressFill.style.width = '100%';
+        if (appProgressMsg) appProgressMsg.textContent = `✓ Downloaded to: ${res.file_path}`;
+        runAppUpdateBtn.style.display = 'none';
+        showToast("New version downloaded to Downloads folder!", "success", 7000);
+      } else {
+        const err = (res && res.error) ? res.error : "Unknown error";
+        if (appProgressMsg) appProgressMsg.textContent = "Download failed: " + err;
+        runAppUpdateBtn.disabled = false;
+        runAppUpdateBtn.innerHTML = '<span>📥</span> Retry Download';
+        showToast("App update download failed: " + err, "error");
+      }
+    } catch (err) {
+      if (appProgressMsg) appProgressMsg.textContent = "Download failed: " + err;
+      runAppUpdateBtn.disabled = false;
+      runAppUpdateBtn.innerHTML = '<span>📥</span> Retry Download';
+      showToast("Error downloading app update: " + err, "error");
+    }
+  });
+}

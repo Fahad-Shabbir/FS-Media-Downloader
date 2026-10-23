@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Universal Media Downloader - Liquid Glass Edition</title>
+  <title>FS Media Downloader - Liquid Glass Edition</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -34,7 +34,7 @@
         <div class="brand-icon">⚡</div>
         <div>
           <div class="brand-title">
-            Universal Media Downloader
+            FS Media Downloader
             <span class="author-pill">by Fahad Shabbir</span>
           </div>
         </div>
@@ -54,6 +54,13 @@
         <button class="glass-btn-icon" id="cookiesBtn" title="Import cookies.txt to bypass 'Sign in to confirm you are not a robot'">
           <span>🍪</span>
           <span id="cookiesLabel">Bypass Bot Check</span>
+        </button>
+
+        <!-- Update Check & Core Engine Button -->
+        <button class="glass-btn-icon" id="updateBtn" title="Check for yt-dlp & app updates">
+          <span id="updateBtnIcon" class="update-icon">🔄</span>
+          <span id="updateBtnLabel">Update</span>
+          <span id="updateNoticeDot" class="update-notice-dot" style="display: none;"></span>
         </button>
 
         <!-- Theme Toggle -->
@@ -249,10 +256,117 @@
 
     <!-- Footer -->
     <footer class="app-footer">
-      <span>Powered by yt-dlp & FFmpeg Hardware Acceleration</span>
+      <div class="footer-left">
+        <span>Powered by <strong id="footerYtdlpVer">yt-dlp</strong> & FFmpeg Hardware Acceleration</span>
+        <span class="version-tag-pill" id="footerAppVer">App v1.0.0</span>
+      </div>
       <span class="footer-credit">Handcrafted with Liquid Glass UI by Fahad Shabbir</span>
     </footer>
   </div>
+
+  <!-- Liquid Glass Update Modal -->
+  <div id="updateModalOverlay" class="glass-modal-overlay">
+    <div class="glass-panel glass-modal-card" data-tilt="true">
+      <div class="modal-header">
+        <div class="modal-title-row">
+          <div class="brand-icon" style="width: 36px; height: 36px; font-size: 18px;">🔄</div>
+          <div>
+            <div class="modal-title">System & Engine Updates</div>
+            <div class="modal-subtitle">Keep yt-dlp & FS Media Downloader fresh</div>
+          </div>
+        </div>
+        <button class="glass-btn-icon-mini modal-close-btn" id="closeUpdateModalBtn" title="Close">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- yt-dlp Core Engine Section -->
+        <div class="update-card-item">
+          <div class="update-item-header">
+            <div class="update-item-title-group">
+              <span class="update-item-icon">🚀</span>
+              <div>
+                <div class="update-item-name">yt-dlp Core Engine</div>
+                <div class="update-item-desc">Extracts video streams across 1000+ sites</div>
+              </div>
+            </div>
+            <span id="ytdlpStatusBadge" class="status-badge checking">Checking...</span>
+          </div>
+
+          <div class="update-item-versions">
+            <span>Installed: <strong id="modalYtdlpInstalled">--</strong></span>
+            <span>Latest: <strong id="modalYtdlpLatest">--</strong></span>
+          </div>
+
+          <!-- yt-dlp Progress Box -->
+          <div id="ytdlpProgressBox" class="update-progress-box" style="display: none;">
+            <div class="update-progress-bar-track">
+              <div id="ytdlpProgressFill" class="update-progress-bar-fill"></div>
+            </div>
+            <div id="ytdlpProgressMsg" class="update-progress-msg">Downloading wheel...</div>
+          </div>
+
+          <div class="update-actions-row">
+            <button class="glass-btn-primary" id="runYtdlpUpdateBtn" style="display: none;">
+              <span>⚡</span> Update yt-dlp Engine
+            </button>
+            <button class="glass-btn-success" id="restartAppBtn" style="display: none;">
+              <span>🔄</span> Restart App to Apply
+            </button>
+          </div>
+        </div>
+
+        <!-- FS Media Downloader App Section -->
+        <div class="update-card-item">
+          <div class="update-item-header">
+            <div class="update-item-title-group">
+              <span class="update-item-icon">💎</span>
+              <div>
+                <div class="update-item-name">FS Media Downloader</div>
+                <div class="update-item-desc">Liquid Glass Desktop Application</div>
+              </div>
+            </div>
+            <span id="appStatusBadge" class="status-badge checking">Checking...</span>
+          </div>
+
+          <div class="update-item-versions">
+            <span>Installed: <strong id="modalAppInstalled">v1.0.0</strong></span>
+            <span>Latest: <strong id="modalAppLatest">--</strong></span>
+          </div>
+
+          <!-- App Notes Box -->
+          <div id="appNotesBox" class="app-notes-box" style="display: none;">
+            <div class="app-notes-title">Release Information:</div>
+            <div id="appNotesContent" class="app-notes-content"></div>
+          </div>
+
+          <!-- App Progress Box -->
+          <div id="appProgressBox" class="update-progress-box" style="display: none;">
+            <div class="update-progress-bar-track">
+              <div id="appProgressFill" class="update-progress-bar-fill"></div>
+            </div>
+            <div id="appProgressMsg" class="update-progress-msg">Downloading update...</div>
+          </div>
+
+          <div class="update-actions-row">
+            <button class="glass-btn-primary" id="runAppUpdateBtn" style="display: none;">
+              <span>📥</span> Download New Version (.exe)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="glass-btn-icon" id="recheckUpdatesBtn">
+          <span id="recheckIcon">🔄</span>
+          <span>Check Again</span>
+        </button>
+        <button class="glass-btn-icon" id="dismissModalBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Stack -->
+  <div id="toastContainer" class="toast-container"></div>
 
   <script src="app.js"></script>
 </body>
