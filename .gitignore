@@ -1,0 +1,19 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# PyInstaller build artifacts
+build/
+dist/
+*.manifest
+
+# SENSITIVE: Personal session cookies (Never commit to public git!)
+cookies.txt
+
+# Environment & IDE
+.venv/
+venv/
+ENV/
+.vscode/
+.idea/
