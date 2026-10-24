@@ -2,9 +2,9 @@
 ; Handcrafted by Fahad Shabbir
 
 #define MyAppName "FS Media Downloader"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.0.1"
 #define MyAppPublisher "Fahad Shabbir"
-#define MyAppURL "https://github.com/Fahad-Shabbir/Universal-Media-Downloader"
+#define MyAppURL "https://github.com/Fahad-Shabbir/FS-Media-Downloader"
 #define MyAppExeName "FS Media Downloader.exe"
 
 [Setup]

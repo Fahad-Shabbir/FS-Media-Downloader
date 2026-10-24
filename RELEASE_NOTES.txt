@@ -1,0 +1,6 @@
+FS Media Downloader - Release Notes & Build History
+=======================================================
+
+[2026-10-24 01:15] v1.0.0: Initial release baseline
+[2026-10-24 01:18] v1.0.0: Baseline 1.0.0
+[2026-10-24 01:20] v1.0.1: Release 1.0.1 with self-updating engine

@@ -30,8 +30,8 @@ A modern Windows desktop application to download videos and audio from **YouTube
 
 ```powershell
 # 1. Clone repository
-git clone https://github.com/Fahad-Shabbir/Universal-Media-Downloader.git
-cd "Universal-Media-Downloader"
+git clone https://github.com/Fahad-Shabbir/FS-Media-Downloader.git
+cd "FS-Media-Downloader"
 
 # 2. Install dependencies
 pip install -r requirements.txt

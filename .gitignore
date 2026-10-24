@@ -17,3 +17,6 @@ venv/
 ENV/
 .vscode/
 .idea/
+
+# Installer output
+installer_output/

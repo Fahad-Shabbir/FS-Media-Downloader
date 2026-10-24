@@ -280,8 +280,8 @@ class DownloaderApi:
 
         return updater.perform_ytdlp_update(progress_cb=progress_cb)
 
-    def download_app_update(self, asset_url, asset_name=""):
-        """Downloads the new app .exe from GitHub into the user's Downloads folder."""
+    def download_app_update(self, asset_url, asset_name="", expected_size=0, expected_sha256=""):
+        """Downloads and verifies the new app .exe release asset into a temp staging location."""
         def progress_cb(pct, status):
             if not self.window:
                 return
@@ -291,10 +291,26 @@ class DownloaderApi:
             except Exception:
                 pass
 
-        res = updater.download_app_asset(asset_url, asset_name, progress_cb=progress_cb)
-        if res.get("success") and res.get("file_path"):
-            updater.open_file_location(res["file_path"])
-        return res
+        return updater.download_and_verify_app_update(
+            asset_url=asset_url,
+            asset_name=asset_name,
+            expected_size=expected_size if expected_size else None,
+            expected_sha256=expected_sha256 if expected_sha256 else None,
+            progress_cb=progress_cb
+        )
+
+    def apply_app_update(self, new_exe_path):
+        """Swaps the running executable with the new version and relaunches."""
+        return updater.apply_portable_update(new_exe_path)
+
+    def open_url(self, url):
+        """Opens a web URL in the user's default browser."""
+        import webbrowser
+        try:
+            webbrowser.open(url)
+            return True
+        except Exception:
+            return False
 
     def restart_app(self):
         """Restarts the application to load new updates."""
@@ -325,7 +341,7 @@ def main():
         sys.exit(1)
 
     window = webview.create_window(
-        title="FS Media Downloader - Liquid Glass Edition by Fahad Shabbir",
+        title=f"FS Media Downloader v{updater.APP_VERSION} - Liquid Glass Edition by Fahad Shabbir",
         url=html_file,
         js_api=api,
         width=1040,
@@ -335,7 +351,23 @@ def main():
         text_select=True,
     )
     api.set_window(window)
-    webview.start(debug=False)
+    
+    storage_dir = os.path.join(updater.get_local_appdata_dir(), "webview_cache")
+    try:
+        os.makedirs(storage_dir, exist_ok=True)
+    except Exception:
+        storage_dir = None
+
+    icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "app_icon.ico")
+    if not os.path.exists(icon_path):
+        icon_path = None
+
+    webview.start(
+        debug=False,
+        private_mode=False,
+        storage_path=storage_dir,
+        icon=icon_path
+    )
 
 
 if __name__ == '__main__':

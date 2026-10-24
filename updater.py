@@ -6,13 +6,15 @@ import shutil
 import zipfile
 import io
 import subprocess
+import hashlib
 import requests
 
 # Single source of truth for the application version
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.0.1"
 
-GITHUB_REPO = "Fahad-Shabbir/Universal-Media-Downloader"
+GITHUB_REPO = "Fahad-Shabbir/FS-Media-Downloader"
 PYPI_URL = "https://pypi.org/pypi/yt-dlp/json"
+
 
 def get_local_appdata_dir():
     """Returns %LOCALAPPDATA%\\FSMediaDownloader (migrates from legacy UniversalMediaDownloader if present)."""
@@ -29,14 +31,17 @@ def get_local_appdata_dir():
 
     return new_dir
 
+
 def get_ytdlp_update_dir():
     """Returns %LOCALAPPDATA%\\FSMediaDownloader\\yt_dlp_update."""
     return os.path.join(get_local_appdata_dir(), 'yt_dlp_update')
+
 
 def is_ytdlp_custom():
     """Checks if an overridden yt-dlp package exists in the update directory."""
     d = get_ytdlp_update_dir()
     return os.path.isdir(os.path.join(d, 'yt_dlp')) and os.path.isfile(os.path.join(d, 'yt_dlp', '__init__.py'))
+
 
 def setup_ytdlp_override():
     """
@@ -51,6 +56,21 @@ def setup_ytdlp_override():
             sys.path.insert(0, target_dir)
         return True
     return False
+
+
+def is_directory_writable(dir_path):
+    """Tests if a directory has write permissions by creating and removing a temp file."""
+    if not dir_path or not os.path.isdir(dir_path):
+        return False
+    test_file = os.path.join(dir_path, f".write_test_{os.getpid()}.tmp")
+    try:
+        with open(test_file, 'w') as f:
+            f.write('write_test')
+        os.remove(test_file)
+        return True
+    except Exception:
+        return False
+
 
 def parse_version(v_str):
     """Parses version strings like '2026.10.21' or 'v1.0.0' for accurate comparison."""
@@ -72,6 +92,7 @@ def parse_version(v_str):
             tokens.append(piece)
     return tuple(tokens)
 
+
 def get_installed_versions():
     """Returns current App version, yt-dlp version, and whether yt-dlp is an override."""
     try:
@@ -85,6 +106,7 @@ def get_installed_versions():
         "ytdlp_version": ytdlp_ver,
         "ytdlp_is_custom": is_ytdlp_custom()
     }
+
 
 def check_ytdlp_update():
     """
@@ -144,9 +166,11 @@ def check_ytdlp_update():
             "error": str(e)
         }
 
+
 def check_app_update():
     """
     Calls the GitHub Releases API to check for new app versions.
+    Extracts standalone exe asset and SHA-256 digest if available.
     """
     url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
     headers = {
@@ -156,7 +180,6 @@ def check_app_update():
     try:
         resp = requests.get(url, timeout=10, headers=headers)
         if resp.status_code == 404:
-            # No releases published yet on GitHub repo
             return {
                 "update_available": False,
                 "current": APP_VERSION,
@@ -180,34 +203,7 @@ def check_app_update():
             }
 
         data = resp.json()
-        tag_name = data.get('tag_name', '')
-        clean_tag = tag_name.lstrip('vV')
-        has_update = parse_version(clean_tag) > parse_version(APP_VERSION)
-
-        assets = data.get('assets', [])
-        exe_asset = None
-        for a in assets:
-            if a.get('name', '').lower().endswith('.exe'):
-                exe_asset = a
-                break
-
-        asset_url = exe_asset.get('browser_download_url') if exe_asset else data.get('html_url')
-        asset_name = exe_asset.get('name', f'FS.Media.Downloader.v{clean_tag}.exe') if exe_asset else ''
-        asset_size = exe_asset.get('size', 0) if exe_asset else 0
-
-        return {
-            "update_available": has_update,
-            "current": APP_VERSION,
-            "latest": clean_tag,
-            "tag_name": tag_name,
-            "release_name": data.get('name', tag_name),
-            "notes": data.get('body', ''),
-            "asset_url": asset_url,
-            "asset_name": asset_name,
-            "size_mb": round(asset_size / (1024 * 1024), 2) if asset_size else None,
-            "html_url": data.get('html_url', ''),
-            "error": None
-        }
+        return _process_release_data(data)
     except requests.exceptions.RequestException:
         return {
             "update_available": False,
@@ -222,6 +218,66 @@ def check_app_update():
             "latest": APP_VERSION,
             "error": str(e)
         }
+
+
+def _process_release_data(data):
+    """Processes release JSON data and inspects writable permissions."""
+    tag_name = data.get('tag_name', '')
+    clean_tag = tag_name.lstrip('vV')
+    has_update = parse_version(clean_tag) > parse_version(APP_VERSION)
+
+    assets = data.get('assets', [])
+    
+    # Prioritize standalone portable .exe (exclude setup/installer if possible)
+    exe_asset = None
+    portable_candidates = [
+        a for a in assets
+        if a.get('name', '').lower().endswith('.exe') and 'setup' not in a.get('name', '').lower()
+    ]
+    if portable_candidates:
+        exe_asset = portable_candidates[0]
+    else:
+        all_exes = [a for a in assets if a.get('name', '').lower().endswith('.exe')]
+        if all_exes:
+            exe_asset = all_exes[0]
+
+    asset_url = exe_asset.get('browser_download_url') if exe_asset else data.get('html_url')
+    asset_name = exe_asset.get('name', f'FS.Media.Downloader.v{clean_tag}.exe') if exe_asset else ''
+    asset_size = exe_asset.get('size', 0) if exe_asset else 0
+
+    # Look for SHA256 digest in release body
+    body = data.get('body', '') or ''
+    expected_sha256 = None
+    sha_match = re.search(r'(?:sha256|sha-256|hash)[\s:=]+([a-fA-F0-9]{64})', body, re.IGNORECASE)
+    if sha_match:
+        expected_sha256 = sha_match.group(1).lower()
+
+    # Check if target executable folder is writable
+    is_frozen = getattr(sys, 'frozen', False)
+    if is_frozen:
+        exe_dir = os.path.dirname(os.path.abspath(sys.executable))
+        can_auto_update = is_directory_writable(exe_dir)
+    else:
+        can_auto_update = True  # Dev mode
+
+    return {
+        "update_available": has_update,
+        "current": APP_VERSION,
+        "latest": clean_tag,
+        "tag_name": tag_name,
+        "release_name": data.get('name', tag_name),
+        "notes": body,
+        "asset_url": asset_url,
+        "asset_name": asset_name,
+        "size_bytes": asset_size,
+        "size_mb": round(asset_size / (1024 * 1024), 2) if asset_size else None,
+        "expected_sha256": expected_sha256,
+        "html_url": data.get('html_url', f"https://github.com/{GITHUB_REPO}/releases/latest"),
+        "is_frozen": is_frozen,
+        "can_auto_update": can_auto_update,
+        "error": None
+    }
+
 
 def perform_ytdlp_update(progress_cb=None):
     """
@@ -280,7 +336,6 @@ def perform_ytdlp_update(progress_cb=None):
             try:
                 shutil.rmtree(target_dir)
             except Exception:
-                # If some files are momentarily locked, copy over them
                 for root, _, files in os.walk(temp_dir):
                     rel = os.path.relpath(root, temp_dir)
                     dest_sub = os.path.join(target_dir, rel)
@@ -304,10 +359,184 @@ def perform_ytdlp_update(progress_cb=None):
     except Exception as e:
         return {"error": str(e)}
 
+
+def download_and_verify_app_update(asset_url, asset_name="", expected_size=None, expected_sha256=None, progress_cb=None):
+    """
+    Downloads the GitHub .exe release asset to a temp folder, reporting progress and
+    verifying both size and SHA-256 digest (if provided).
+    """
+    temp_dir = os.path.join(os.environ.get('TEMP', os.path.expanduser('~\\AppData\\Local\\Temp')), 'FSMediaDownloaderUpdate')
+    try:
+        os.makedirs(temp_dir, exist_ok=True)
+    except Exception as e:
+        return {"error": f"Failed to create temp directory: {e}"}
+
+    if not asset_name:
+        asset_name = "FS_Media_Downloader_new.exe"
+    
+    clean_name = re.sub(r'[^\w\.-]', '_', asset_name)
+    target_path = os.path.join(temp_dir, f"update_{os.getpid()}_{clean_name}")
+
+    try:
+        if progress_cb:
+            progress_cb(5, "Connecting to download server...")
+
+        # If asset_url is a local file (for testing)
+        if os.path.isfile(asset_url):
+            if progress_cb:
+                progress_cb(50, "Staging local test package...")
+            shutil.copy2(asset_url, target_path)
+            total_len = os.path.getsize(target_path)
+            hasher = hashlib.sha256()
+            with open(target_path, 'rb') as f:
+                while chunk := f.read(131072):
+                    hasher.update(chunk)
+            actual_sha = hasher.hexdigest().lower()
+            if progress_cb:
+                progress_cb(100, "Package verified!")
+            return {"success": True, "file_path": target_path, "sha256": actual_sha}
+
+        headers = {'User-Agent': f'FSMediaDownloader/{APP_VERSION}'}
+        resp = requests.get(asset_url, stream=True, timeout=60, headers=headers)
+        resp.raise_for_status()
+
+        content_length = int(resp.headers.get('content-length', 0))
+        target_size = expected_size or content_length
+
+        downloaded = 0
+        hasher = hashlib.sha256()
+
+        with open(target_path, 'wb') as f:
+            for chunk in resp.iter_content(chunk_size=131072):
+                if chunk:
+                    f.write(chunk)
+                    hasher.update(chunk)
+                    downloaded += len(chunk)
+                    if progress_cb:
+                        pct = int((downloaded / target_size) * 90) if target_size > 0 else 50
+                        pct = min(pct, 95)
+                        down_mb = downloaded / (1024 * 1024)
+                        tot_mb = target_size / (1024 * 1024) if target_size > 0 else down_mb
+                        progress_cb(pct, f"Downloading update ({down_mb:.1f} / {tot_mb:.1f} MB)...")
+
+        # Size Verification
+        if target_size > 0 and downloaded < (target_size * 0.95):  # allow small compression variance if dynamic
+            raise ValueError(f"Downloaded file incomplete ({downloaded} / {target_size} bytes)")
+
+        # SHA-256 Verification (if provided)
+        actual_sha = hasher.hexdigest().lower()
+        if expected_sha256 and expected_sha256.lower() != actual_sha:
+            try:
+                os.remove(target_path)
+            except Exception:
+                pass
+            raise ValueError(f"SHA-256 digest mismatch! Expected {expected_sha256}, got {actual_sha}")
+
+        if progress_cb:
+            progress_cb(100, "Update downloaded and verified!")
+
+        return {
+            "success": True,
+            "file_path": target_path,
+            "sha256": actual_sha,
+            "size_bytes": downloaded
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def apply_portable_update(new_exe_path):
+    """
+    Relaunches the app through a helper batch script that waits for the app process to exit,
+    backs up current exe as 'FS Media Downloader.old', swaps in the new exe, launches it,
+    and cleans up. If replacement fails, it restores the backup and shows an error.
+    """
+    if not getattr(sys, 'frozen', False):
+        return {
+            "error": "Running in development mode (from source). Standalone replacement skipped.",
+            "dev_mode": True,
+            "file_path": new_exe_path
+        }
+
+    current_exe = os.path.abspath(sys.executable)
+    exe_dir = os.path.dirname(current_exe)
+
+    if not is_directory_writable(exe_dir):
+        return {
+            "error": "The application folder is read-only or lacks administrative permissions. Please download the release manually.",
+            "read_only": True
+        }
+
+    if not os.path.isfile(new_exe_path):
+        return {"error": f"Downloaded update file not found at {new_exe_path}"}
+
+    pid = os.getpid()
+    temp_dir = os.environ.get('TEMP', os.path.expanduser('~\\AppData\\Local\\Temp'))
+    bat_path = os.path.join(temp_dir, f"fs_update_worker_{pid}.bat")
+
+    # Helper batch script that runs independently after this process exits
+    bat_content = f"""@echo off
+setlocal
+set "PID={pid}"
+set "NEW_EXE={new_exe_path}"
+set "TARGET_EXE={current_exe}"
+set "OLD_EXE={current_exe}.old"
+
+:: 1. Wait for the app process to terminate
+:WaitLoop
+ping 127.0.0.1 -n 2 >nul
+tasklist /fi "PID eq %PID%" 2>nul | findstr /i "%PID%" >nul
+if %errorlevel% equ 0 goto :WaitLoop
+
+:: 2. Safety pause for OS file lock release
+ping 127.0.0.1 -n 2 >nul
+
+:: 3. Clean old backup if it was left from previous update
+if exist "%OLD_EXE%" del /f /q "%OLD_EXE%" >nul 2>nul
+
+:: 4. Rename current running exe to .old
+move /y "%TARGET_EXE%" "%OLD_EXE%" >nul 2>nul
+if errorlevel 1 goto :RestoreAndFail
+
+:: 5. Move new executable into place
+move /y "%NEW_EXE%" "%TARGET_EXE%" >nul 2>nul
+if errorlevel 1 goto :RestoreAndFail
+
+:: 6. Launch the updated application
+start "" "%TARGET_EXE%"
+
+:: 7. Wait briefly and delete old backup once new exe is running
+ping 127.0.0.1 -n 4 >nul
+if exist "%OLD_EXE%" del /f /q "%OLD_EXE%" >nul 2>nul
+goto :CleanSelf
+
+:RestoreAndFail
+if not exist "%TARGET_EXE%" (
+    if exist "%OLD_EXE%" move /y "%OLD_EXE%" "%TARGET_EXE%" >nul 2>nul
+)
+powershell -Command "[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null; [System.Windows.Forms.MessageBox]::Show('Update failed: Unable to replace the executable file. Antivirus or file lock may have blocked replacement. The original version was restored.', 'FS Media Downloader - Update Error', 0, 16)" >nul 2>nul
+if exist "%TARGET_EXE%" start "" "%TARGET_EXE%"
+
+:CleanSelf
+(goto) 2>nul & del /f /q "%~f0"
+"""
+
+    try:
+        with open(bat_path, "w", encoding="utf-8") as f:
+            f.write(bat_content)
+
+        # Launch detached batch script (CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP)
+        flags = 0x08000000 | 0x00000200
+        subprocess.Popen(["cmd.exe", "/c", bat_path], creationflags=flags)
+
+        # Terminate current app immediately so the helper can perform the replacement
+        os._exit(0)
+    except Exception as e:
+        return {"error": f"Failed to execute update helper: {e}"}
+
+
 def download_app_asset(asset_url, asset_name="", progress_cb=None):
-    """
-    Downloads the GitHub .exe release asset to the user's Downloads folder.
-    """
+    """Fallback manual download into user's Downloads folder."""
     dest_dir = os.path.join(os.path.expanduser("~"), "Downloads")
     if not os.path.isdir(dest_dir):
         dest_dir = os.getcwd()
@@ -349,6 +578,7 @@ def download_app_asset(asset_url, asset_name="", progress_cb=None):
     except Exception as e:
         return {"error": str(e)}
 
+
 def open_file_location(path):
     """Selects and reveals the file in Windows File Explorer."""
     try:
@@ -362,15 +592,14 @@ def open_file_location(path):
         print(f"Error opening explorer location: {e}")
     return False
 
+
 def restart_app():
     """Relaunches the current application and cleanly terminates the old process."""
     try:
         if getattr(sys, 'frozen', False):
-            # PyInstaller exe
             exe_path = sys.executable
             subprocess.Popen([exe_path] + sys.argv[1:], creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == 'win32' else 0)
         else:
-            # Python script
             subprocess.Popen([sys.executable] + sys.argv)
     except Exception as e:
         print(f"Error restarting app: {e}")

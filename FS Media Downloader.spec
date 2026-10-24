@@ -11,7 +11,7 @@ for pkg in ['customtkinter', 'imageio_ffmpeg', 'yt_dlp', 'webview', 'pythonnet',
     binaries += tmp_ret[1]
     hiddenimports += tmp_ret[2]
 
-hiddenimports += ['updater', 'packaging', 'packaging.version']
+hiddenimports += ['updater', 'packaging', 'packaging.version', 'app_classic']
 
 a = Analysis(
     ['app.py'],
@@ -47,5 +47,6 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    version='version_info.txt',
     icon='app_icon.ico',
 )
