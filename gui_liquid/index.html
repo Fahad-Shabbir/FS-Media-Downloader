@@ -32,28 +32,17 @@
     <header class="glass-panel app-header" data-tilt="true">
       <div class="header-brand">
         <div class="brand-icon">⚡</div>
-        <div>
-          <div class="brand-title">
-            FS Media Downloader
-            <span class="author-pill">by Fahad Shabbir</span>
-          </div>
+        <div class="brand-text-col">
+          <div class="brand-title">FS Media Downloader</div>
+          <div class="brand-subtitle">Liquid Glass Edition • by Fahad Shabbir</div>
         </div>
       </div>
 
       <div class="header-actions">
-        <!-- Turbo Switch -->
-        <label class="turbo-toggle active" id="turboToggleContainer" title="8x Multi-Threaded Parallel Fragment Downloads">
-          <span style="font-size: 13px; font-weight: 600;">⚡ Turbo 8x</span>
-          <div class="switch">
-            <input type="checkbox" id="turboCheck" checked>
-            <span class="slider"></span>
-          </div>
-        </label>
-
         <!-- Cookies Anti-Bot Bypass Button -->
         <button class="glass-btn-icon" id="cookiesBtn" title="Import cookies.txt to bypass 'Sign in to confirm you are not a robot'">
           <span>🍪</span>
-          <span id="cookiesLabel">Bypass Bot Check</span>
+          <span id="cookiesLabel">Anti-Bot</span>
         </button>
 
         <!-- Update Check & Core Engine Button -->
@@ -63,10 +52,9 @@
           <span id="updateNoticeDot" class="update-notice-dot" style="display: none;"></span>
         </button>
 
-        <!-- Theme Toggle -->
-        <button class="glass-btn-icon" id="themeToggleBtn" title="Switch Theme">
+        <!-- Theme Toggle (Compact Icon) -->
+        <button class="glass-btn-icon icon-only" id="themeToggleBtn" title="Switch Theme">
           <span id="themeIcon">☀️</span>
-          <span id="themeLabel">Light Mode</span>
         </button>
       </div>
     </header>
@@ -203,12 +191,25 @@
       </div>
     </section>
 
-    <!-- Destination Folder Bar -->
+    <!-- Destination Folder & Download Settings Bar -->
     <div class="glass-panel destination-bar" data-tilt="true">
-      <span style="font-weight: 600;">Save To:</span>
-      <span id="destPathText" class="dest-path">C:\Users\Fahad Shabbir\Downloads</span>
-      <button class="glass-btn-icon" id="browseDestBtn">📁 Browse</button>
-      <button class="glass-btn-icon" id="openDestBtn">📂 Open Folder</button>
+      <div class="dest-folder-group">
+        <span class="dest-label">Save To:</span>
+        <span id="destPathText" class="dest-path">C:\Users\Fahad Shabbir\Downloads</span>
+        <button class="glass-btn-icon" id="browseDestBtn" title="Change destination folder">📁 Browse</button>
+        <button class="glass-btn-icon" id="openDestBtn" title="Open download folder in Explorer">📂 Open</button>
+      </div>
+
+      <div class="dest-divider"></div>
+
+      <!-- Turbo Multi-Thread Accelerator Switch -->
+      <label class="turbo-toggle active" id="turboToggleContainer" title="8x Multi-Threaded Parallel Fragment Downloads">
+        <span style="font-size: 13px; font-weight: 600;">⚡ Turbo 8x</span>
+        <div class="switch">
+          <input type="checkbox" id="turboCheck" checked>
+          <span class="slider"></span>
+        </div>
+      </label>
     </div>
 
     <!-- Download Trigger & Liquid Wave Progress Glass Card -->

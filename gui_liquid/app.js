@@ -133,7 +133,7 @@ function updateGlider(gliderEl, targetBtn) {
   gliderEl.style.width = `${width}px`;
 }
 
-// 2. Interactive 3D Liquid Glass Tilt & Specular Glare Tracking
+// 2. Interactive Liquid Glass Specular Glare Tracking
 function setupLiquidTilt() {
   const tiltPanels = document.querySelectorAll('.glass-panel[data-tilt="true"]');
   
@@ -143,23 +143,12 @@ function setupLiquidTilt() {
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       
-      const centerX = rect.width / 2;
-      const centerY = rect.height / 2;
-      
-      // Calculate subtle tilt angle (-3 to +3 degrees)
-      const tiltX = ((y - centerY) / centerY) * -2.5;
-      const tiltY = ((x - centerX) / centerX) * 2.5;
-      
       panel.style.setProperty('--mouse-x', `${x}px`);
       panel.style.setProperty('--mouse-y', `${y}px`);
-      panel.style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
-      panel.style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
       panel.style.setProperty('--specular-opacity', '1');
     });
 
     panel.addEventListener('mouseleave', () => {
-      panel.style.setProperty('--tilt-x', '0deg');
-      panel.style.setProperty('--tilt-y', '0deg');
       panel.style.setProperty('--specular-opacity', '0');
     });
   });
@@ -194,18 +183,37 @@ document.addEventListener('click', (e) => {
 // ================= PYWEBVIEW LIFECYCLE =================
 window.addEventListener('pywebviewready', () => {
   if (window.pywebview && window.pywebview.api) {
-    window.pywebview.api.get_default_download_dir().then(path => {
-      if (path) destPathText.textContent = path;
-    });
-    window.pywebview.api.check_cookies().then(hasCookie => {
-      if (hasCookie) {
-        cookiesLabel.textContent = "Cookies Active ✓";
-        cookiesBtn.style.borderColor = "rgba(74, 222, 128, 0.5)";
-        cookiesBtn.style.color = "#4ade80";
+    // Sequentially invoke startup bootstrap so pywebview synchronization context never collides
+    setTimeout(async () => {
+      try {
+        const path = await window.pywebview.api.get_default_download_dir();
+        if (path && destPathText) destPathText.textContent = path;
+      } catch (e) {
+        console.warn("Error getting download dir:", e);
       }
-    });
-    // Load installed versions into UI
-    loadInstalledVersions();
+
+      try {
+        const hasCookie = await window.pywebview.api.check_cookies();
+        if (hasCookie && cookiesLabel && cookiesBtn) {
+          cookiesLabel.textContent = "Cookies Active ✓";
+          cookiesBtn.style.borderColor = "rgba(74, 222, 128, 0.5)";
+          cookiesBtn.style.color = "#4ade80";
+        }
+      } catch (e) {
+        console.warn("Error checking cookies:", e);
+      }
+
+      try {
+        await loadInstalledVersions();
+      } catch (e) {
+        console.warn("Error loading versions:", e);
+      }
+
+      // Silently check for updates in background 3 seconds after complete settlement
+      setTimeout(() => {
+        checkUpdates(false);
+      }, 3000);
+    }, 250);
   }
 });
 
@@ -223,12 +231,14 @@ themeToggleBtn.addEventListener('click', () => {
   const current = docEl.getAttribute('data-theme');
   if (current === 'light') {
     docEl.setAttribute('data-theme', 'dark');
-    themeIcon.textContent = '☀️';
-    themeLabel.textContent = 'Light Mode';
+    if (themeIcon) themeIcon.textContent = '☀️';
+    if (themeLabel) themeLabel.textContent = 'Light Mode';
+    themeToggleBtn.setAttribute('title', 'Switch to Light Mode');
   } else {
     docEl.setAttribute('data-theme', 'light');
-    themeIcon.textContent = '🌙';
-    themeLabel.textContent = 'Dark Mode';
+    if (themeIcon) themeIcon.textContent = '🌙';
+    if (themeLabel) themeLabel.textContent = 'Dark Mode';
+    themeToggleBtn.setAttribute('title', 'Switch to Dark Mode');
   }
 });
 
@@ -892,6 +902,11 @@ async function checkUpdates(openModal = true) {
     } else if (app.update_available) {
       appStatusBadge.className = 'status-badge available';
       appStatusBadge.textContent = `New Version Available (v${app.latest})`;
+      if (app.can_auto_update === false) {
+        runAppUpdateBtn.innerHTML = '<span>🌐</span> Open Release Download Page';
+      } else {
+        runAppUpdateBtn.innerHTML = `<span>⚡</span> Update App to v${app.latest} (Auto-Replace & Restart)`;
+      }
       runAppUpdateBtn.style.display = 'inline-flex';
       if (app.notes && appNotesBox && appNotesContent) {
         appNotesContent.textContent = app.notes;
@@ -907,14 +922,18 @@ async function checkUpdates(openModal = true) {
 
     // Toast feedback if up to date
     if (!ytdlp.update_available && !app.update_available && !ytdlp.error && !app.error) {
-      showToast("You're up to date! yt-dlp core and App are on the latest versions.", "success");
+      if (openModal) {
+        showToast("You're up to date! yt-dlp core and App are on the latest versions.", "success");
+      }
       if (updateNoticeDot) updateNoticeDot.style.display = 'none';
     } else if (ytdlp.update_available || app.update_available) {
-      showToast("Updates available! See the dialog to update.", "info");
+      showToast("Updates available! Click the Update button to review and install.", "info", 6000);
     }
 
   } catch (err) {
-    showToast("Update check failed: " + err, "error");
+    if (openModal) {
+      showToast("Update check failed: " + err, "error");
+    }
     if (ytdlpStatusBadge) {
       ytdlpStatusBadge.className = 'status-badge error';
       ytdlpStatusBadge.textContent = 'Error';
@@ -1002,41 +1021,77 @@ if (restartAppBtn) {
   });
 }
 
-// App Update Execution
+// App Update Execution (Auto-replace portable exe or open browser if read-only)
 if (runAppUpdateBtn) {
   runAppUpdateBtn.addEventListener('click', async () => {
-    if (!lastCheckedUpdates || !lastCheckedUpdates.app || !lastCheckedUpdates.app.asset_url) {
+    if (!lastCheckedUpdates || !lastCheckedUpdates.app) {
+      showToast("Download details not found.", "error");
+      return;
+    }
+
+    const appInfo = lastCheckedUpdates.app;
+    if (appInfo.can_auto_update === false) {
+      // Read-only folder: open browser to releases page
+      showToast("Opening release page in browser...", "info");
+      await window.pywebview.api.open_url(appInfo.html_url || appInfo.asset_url);
+      return;
+    }
+
+    const assetUrl = appInfo.asset_url;
+    if (!assetUrl) {
       showToast("Download URL not found.", "error");
       return;
     }
-    const assetUrl = lastCheckedUpdates.app.asset_url;
-    const assetName = lastCheckedUpdates.app.asset_name || "FS Media Downloader.exe";
+    const assetName = appInfo.asset_name || "FS Media Downloader.exe";
+    const expectedSize = appInfo.size_bytes || 0;
+    const expectedSha256 = appInfo.expected_sha256 || "";
 
     runAppUpdateBtn.disabled = true;
-    runAppUpdateBtn.innerHTML = '<span>⏳</span> Downloading...';
+    runAppUpdateBtn.innerHTML = '<span>⏳</span> Downloading update...';
     if (appProgressBox) appProgressBox.style.display = 'flex';
     if (appProgressFill) appProgressFill.style.width = '5%';
-    if (appProgressMsg) appProgressMsg.textContent = 'Connecting to GitHub...';
+    if (appProgressMsg) appProgressMsg.textContent = 'Connecting to download server...';
 
     try {
-      const res = await window.pywebview.api.download_app_update(assetUrl, assetName);
+      const res = await window.pywebview.api.download_app_update(assetUrl, assetName, expectedSize, expectedSha256);
       if (res && res.success) {
         if (appProgressFill) appProgressFill.style.width = '100%';
-        if (appProgressMsg) appProgressMsg.textContent = `✓ Downloaded to: ${res.file_path}`;
-        runAppUpdateBtn.style.display = 'none';
-        showToast("New version downloaded to Downloads folder!", "success", 7000);
+        if (res.dev_mode) {
+          if (appProgressMsg) appProgressMsg.textContent = `✓ Downloaded package (Dev Mode): ${res.file_path}`;
+          runAppUpdateBtn.style.display = 'none';
+          showToast("Update downloaded to temp folder (Running from Python source).", "info", 7000);
+        } else {
+          if (appProgressMsg) appProgressMsg.textContent = '✓ Update verified! Restarting application now...';
+          runAppUpdateBtn.innerHTML = '<span>⏳</span> Relaunching...';
+          showToast("Update ready. Restarting to apply...", "success", 3000);
+          setTimeout(async () => {
+            try {
+              await window.pywebview.api.apply_app_update(res.file_path);
+            } catch (applyErr) {
+              console.error("Apply update error:", applyErr);
+              showToast("Failed to launch updater: " + applyErr, "error");
+              runAppUpdateBtn.disabled = false;
+              runAppUpdateBtn.innerHTML = '<span>📥</span> Retry Update';
+            }
+          }, 1500);
+        }
       } else {
         const err = (res && res.error) ? res.error : "Unknown error";
+        if (res && res.read_only) {
+          showToast("Application folder is read-only. Opening browser to download page...", "warning", 6000);
+          await window.pywebview.api.open_url(appInfo.html_url || assetUrl);
+        } else {
+          showToast("App update failed: " + err, "error");
+        }
         if (appProgressMsg) appProgressMsg.textContent = "Download failed: " + err;
         runAppUpdateBtn.disabled = false;
-        runAppUpdateBtn.innerHTML = '<span>📥</span> Retry Download';
-        showToast("App update download failed: " + err, "error");
+        runAppUpdateBtn.innerHTML = '<span>📥</span> Retry Update';
       }
     } catch (err) {
       if (appProgressMsg) appProgressMsg.textContent = "Download failed: " + err;
       runAppUpdateBtn.disabled = false;
-      runAppUpdateBtn.innerHTML = '<span>📥</span> Retry Download';
-      showToast("Error downloading app update: " + err, "error");
+      runAppUpdateBtn.innerHTML = '<span>📥</span> Retry Update';
+      showToast("Error updating app: " + err, "error");
     }
   });
 }
