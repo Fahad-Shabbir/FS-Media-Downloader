@@ -1,64 +1,82 @@
-# FS Media Downloader - Liquid Glass Edition
+# FS Media Downloader
 
-**Author & Creator:** Fahad Shabbir  
-A modern Windows desktop application to download videos and audio from **YouTube, X (Twitter), Facebook, Instagram, TikTok, Reddit, Twitch, Vimeo, SoundCloud, and 1,000+ popular websites** wrapped in a pure **Liquid Glass (Glassmorphic)** user interface.
+[![Latest release](https://img.shields.io/github/v/release/Fahad-Shabbir/FS-Media-Downloader?style=for-the-badge)](https://github.com/Fahad-Shabbir/FS-Media-Downloader/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/Fahad-Shabbir/FS-Media-Downloader/total?style=for-the-badge)](https://github.com/Fahad-Shabbir/FS-Media-Downloader/releases)
+[![License: MIT](https://img.shields.io/github/license/Fahad-Shabbir/FS-Media-Downloader?style=for-the-badge)](LICENSE)
+![Windows 10/11](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6?style=for-the-badge&logo=windows&logoColor=white)
 
----
+Download video and audio from YouTube, X (Twitter), Instagram, TikTok, Facebook, Reddit, Vimeo, Twitch, SoundCloud and 1,000+ other sites, in a Windows app with a liquid-glass interface. Paste a link, pick a quality, press **Start Download**.
 
-## ✨ Features
+[![FS Media Downloader, dark mode](docs/home-dark.png)](https://github.com/Fahad-Shabbir/FS-Media-Downloader/releases/latest)
 
-### 🪟 Authentic Liquid Glass UI & Swift Animations
-- **Hardware-Accelerated Frosted Glass**: True `backdrop-filter: blur(28px) saturate(180%)` with 1px luminous specular refraction borders.
-- **Organic Metaball Fluid Canvas**: Background pulsating glowing aurora orbs that morph asymmetrically with viscous fluid blending.
-- **🍮 Jelly-Elastic Glider Pills**: Snappy rubber-band spring curves (`cubic-bezier(0.34, 1.56, 0.64, 1)`) for tab and format selectors.
-- **💎 3D Glass Tilt & Caustic Glare**: Interactive perspective tilt and specular light tracking your mouse.
-- **🏄 Sloshing Liquid Wave Progress Bar**: Dual-layer sinusoidal wave crests with horizontal surface shimmer.
-- **🌓 Dual Mode Switching**: One-click toggle between **Liquid Cosmic Midnight** (Dark) and **Frosted Ice Opal** (Light).
+## Download
 
-### 🎬 Media Engine
-- **Multi-Platform Support**: YouTube, X (Twitter), Facebook, Instagram, TikTok, Reddit, Twitch, Vimeo, SoundCloud, and 1000+ sites.
-- **Single URL Mode**: Full preview card (thumbnail, duration, platform chip), dynamic resolutions up to 4K / 2K / 1080p, MP3 (320 kbps), and lossless WAV (PCM).
-- **Playlist & Bulk Queue**: Paste full playlists or multi-URL lists across multiple platforms into a single unified queue.
-- **⚡ Turbo 8x Accelerator**: Parallel multi-threaded fragment download acceleration.
-- **⏸️ Pause / Resume & 🛑 Cancel**: Live in-progress streaming controls with paused amber state and immediate safe abort.
-- **🍪 Anti-Bot Bypass**: Quick importer for `cookies.txt` to bypass YouTube's *"Sign in to confirm you're not a bot"*.
-- **🔄 In-App Updates**: One-click updates for the yt-dlp core engine from PyPI wheels and the application from GitHub releases.
+Get the latest installer from the [Releases page](https://github.com/Fahad-Shabbir/FS-Media-Downloader/releases/latest): `FS_Media_Downloader_Setup_vX.Y.Z.exe`.
 
----
+Run it and follow the wizard. It installs to your user profile, so it needs no administrator rights. No Python needed.
 
-## 💻 Installation & Running from Source
+## Features
+
+- **Many sites.** Everything yt-dlp supports, 1,000+ sites.
+- **Single link.** Preview card with thumbnail, duration and platform. Choose video up to 4K / 2K / 1080p, MP3 (320 kbps), M4A or lossless WAV. File-size badges show on each quality.
+- **Batch queue.** Paste a playlist or a list of links (one per line, mixed sites are fine) into one queue.
+- **Turbo 8x.** Parallel fragment downloads for faster speeds.
+- **Pause, resume, cancel.** Cancelling cleans up partial files.
+- **Anti-Bot.** Import a `cookies.txt` (or use your browser's cookies) to get past "Sign in to confirm you're not a bot".
+- **History.** Recent downloads in a drawer, with actions after each download.
+- **Clip trimmer.** Download just part of a video.
+- **Smart clipboard.** Detects a copied link automatically.
+- **Safe updates.** One-click updates for the yt-dlp engine and the app itself. Downloads are SHA-256 verified.
+- **Light and dark mode.** Frosted glass look, animated background, wave progress bar.
+
+## Screenshots
+
+| | |
+|---|---|
+| [![Light mode](docs/home-light.png)](docs/home-light.png)<br>**Light mode** | [![Dark mode](docs/home-dark.png)](docs/home-dark.png)<br>**Dark mode** |
+| [![Batch queue](docs/batch-queue.png)](docs/batch-queue.png)<br>**Batch queue** | [![Updates](docs/updates.png)](docs/updates.png)<br>**Updates** |
+
+## Quick start
+
+1. Paste a link and press **Analyze**.
+2. Pick video or audio, and the quality.
+3. Choose a folder, then press **Start Download**.
+
+For playlists or many links, switch to **Batch Queue**.
+
+## Run from source
+
+Needs Windows and Python 3.
 
 ```powershell
-# 1. Clone repository
 git clone https://github.com/Fahad-Shabbir/FS-Media-Downloader.git
-cd "FS-Media-Downloader"
-
-# 2. Install dependencies
+cd FS-Media-Downloader
 pip install -r requirements.txt
-
-# 3. Launch App
 python app.py
 ```
 
----
+## Build it yourself
 
-## 📦 Building Standalone Executable & Installer
+| Goal | Command | Output |
+|---|---|---|
+| Installer (recommended) | `build_installer.bat` (needs [Inno Setup 6](https://jrsoftware.org/isinfo.php)) | `installer_output\FS_Media_Downloader_Setup_vX.Y.Z.exe` |
+| Raw executable only | `build_exe.bat` | `dist\` |
 
-### 1. Build Standalone Executable (.exe)
-To bundle the entire app into a single standalone `.exe` (includes Python, FFmpeg, and all Liquid Glass UI assets):
-```powershell
-build_exe.bat
-```
-The output file will be generated in `dist\FS Media Downloader.exe`.
+The raw executable is a build step for the installer and is not published on its own.
 
-### 2. Build Windows Installer (Inno Setup)
-To generate the Windows Setup installer:
-```powershell
-build_installer.bat
-```
-The output file will be generated in `installer_output\FS_Media_Downloader_Setup_v1.0.0.exe`.
+## Where things are
 
----
+| | Installed | From source |
+|---|---|---|
+| App | `%LOCALAPPDATA%\Programs\FS Media Downloader` | the cloned folder |
+| Downloads | the folder you pick in the app (default: your Downloads) | same |
 
-## 📄 License & Attribution
-Designed & Developed with ❤️ by **Fahad Shabbir**.
+## Release history
+
+See [RELEASE_NOTES.txt](RELEASE_NOTES.txt).
+
+## Credits and license
+
+Built on [yt-dlp](https://github.com/yt-dlp/yt-dlp) and FFmpeg. Made by [Fahad Shabbir](https://github.com/Fahad-Shabbir). Released under the [MIT License](LICENSE).
+
+Only download content you have the right to download.
